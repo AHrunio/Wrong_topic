@@ -55,17 +55,15 @@
 > 
 > double sqrt(double x )
 > {
->  double low= 0;double up=x;
->  double mid = low + (up - low)/ 2;
->  while (fabs(mid * mid - x) >=1e-6)
->  {
->   mid = low + (up - low) / 2;
->   if (mid * mid > x) up = mid;
->   else if (mid * mid < x) low = mid;
+>  	double l=0,r=x;
+>      while(1){
+>          auto m=l+(r-l)/2;
+>          if(fabs(m-x/m )<=1e-6)return m;
+>           else if(m<x/m)l=m+1;
+>           else r=m-1;
+>       }
 >  }
->  return mid;
-> }
-> ```
+>  ```
 
 + 如何只用2GB内存从20/40/80亿个整数中找到出现次数最多的数?
 
