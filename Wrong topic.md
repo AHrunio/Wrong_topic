@@ -2,8 +2,6 @@
 
 ⚠本错题集回答为个人见解仅供参考
 
-
-
 + epoll 过程
 
 > epoll使用epoll_create()在内核创建epoll对象，内核中使用红黑树来跟踪所有待检测文件描述符。把监控的socket通过epoll_ctl()加入到内核红黑树，不用每次传一个集合，只传入一个待检测socket。
