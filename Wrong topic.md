@@ -967,3 +967,110 @@
 > 系统调用函数：open  read  write  close   lseek  stat
 >
 > ![image-20210827223336600](https://gitee.com/ahrunio/pic-go-image-hosting-service/raw/master/img/image-20210827223336600.png)
+
+
+
++ map, set, hash_map, hash_set时间复杂度
+
+> map, set, multimap, and multiset
+> 上述四种容器采用红黑树实现，红黑树是平衡二叉树的一种。不同操作的时间复杂度近似为:
+> 插入: O(logN)
+>
+> 查看:O(logN)
+>
+> 删除:O(logN)
+>
+> hash_map, hash_set, hash_multimap, and hash_multiset
+> 上述四种容器采用哈希表实现，不同操作的时间复杂度为：
+> 插入:O(1)，最坏情况O(N)。
+>
+> 查看:O(1)，最坏情况O(N)。
+>
+> 删除:O(1)，最坏情况O(N)。
+
++ 场景题：如果有持续不断的url输入，怎么统计数量最多的前10个url
+
+> 维护10size的小顶堆，只插访问次数比根大的值进去，pop了根，相当于是哈希map+小顶堆，维护一个map存放url和url的freq）
+
++  管道底层是怎么通信的，为什么只能父子通信
+
+> **匿名管道**
+>
+> 父进程在fork出子进程后，子进程拥有了和父进程一样的代码，当然也拥有和父进程一样的文件描述符，在fork出子进程后，父进程关闭管道的读端fd[0]，子进程关闭管道的写端fd[1]，从而来实现父子进程之间的管道通信，即从子进程向管道内写数据，父进程从管道内读数据。
+>
+> **命名管道FIFO**
+>
+> 命名管道相较于匿名管道的不同，就是能够适用于任意进程间的通信。不同的是，匿名管道在用pipe函数创建的同时也打开了，而命名管道在mkfifo创建了之后，还需用open函数打开该命名管道。
+>
+> **对于操作系统，进程就是一个数据结构**，我们直接来看 Linux 的源码：
+>
+> ```
+> struct task_struct {
+>     // 进程状态
+>     long              state;
+>     // 虚拟内存结构体
+>     struct mm_struct  *mm;
+>     // 进程号
+>     pid_t             pid;
+>     // 指向父进程的指针
+>     struct task_struct   *parent;
+>     // 子进程列表
+>     struct list_head      children;
+>     // 存放文件系统信息的指针
+>     struct fs_struct      *fs;
+>     // 一个数组，包含该进程打开的文件指针
+>     struct files_struct   *files;
+> };
+> ```
+>
+> `task_struct`就是 Linux 内核对于一个进程的描述，也可以称为「进程描述符」。源码比较复杂，我这里就截取了一小部分比较常见的。
+>
+> 我们主要聊聊`mm`指针和`files`指针。**`mm`指向的是进程的虚拟内存**，也就是**载入资源和可执行文件**的地方；**`files`指针指向一个数组**，这个数组里**装着所有该进程打开的文件的指针**。
+>
+> **文件描述符是什么**
+>
+> 先说`files`，它是一个**文件指针数组**。一般来说，一个进程会从`files[0]`**读取输入**，将**输出写入**`files[1]`，将**错误信息写入**`files[2]`。
+>
+> 举个例子，以我们的角度 C 语言的`printf`函数是向命令行打印字符，但是从进程的角度来看，就是向`files[1]`写入数据；同理，`scanf`函数就是进程试图从`files[0]`这个文件中读取数据。
+>
+> **每个进程被创建时，`files`的前三位被填入默认值，分别指向标准输入流、标准输出流、标准错误流。我们常说的「文件描述符」就是指这个文件指针数组的索引**，所以程序的文件描述符默认情况下 0 是输入，1 是输出，2 是错误。
+>
+> 我们可以重新画一幅图：
+>
+> ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/gibkIz0MVqdEZbbic0diawibWHE9EoMFmX8qGdHmurRkzVeMrXvIYXveQQkA3ZCQe7gCKDglcMZo6OiaMQYy1NickJng/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+>
+> 对于一般的计算机，输入流是键盘，输出流是显示器，错误流也是显示器，所以现在这个进程和内核连了三根线。因为硬件都是由内核管理的，我们的**进程**需要**通过「系统调用」**让内核进程**访问硬件资源**。
+>
+> PS：不要忘了，Linux 中一切都被抽象成文件，设备也是文件，可以进行读和写。
+>
+> 如果我们写的程序需要其他资源，比如**打开一个文件**进行读写，这也很简单，进行系统调用，让内核把文件打开，这个文件就会被放到`files`的第 4 个位置，对应文件描述符 3：
+>
+> ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/gibkIz0MVqdEZbbic0diawibWHE9EoMFmX8qj7mQ2bDPdIMZIA7aNrWwbWMlbdiaYPn8EXVsjLY2uckc4IgUzric5tvA/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+>
+> 明白了这个原理，**输入重定向**就很好理解了，程序想读取数据的时候就会去`files[0]`读取，所以我们只要把`files[0]`指向一个文件，那么程序就会从这个文件中读取数据，而不是从键盘：
+>
+> ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/gibkIz0MVqdEZbbic0diawibWHE9EoMFmX8qUGlh8sIut3YFIPFIEA6H8oahMlWpjjiak2KM9K7HX24zK7GLzknYAPQ/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+>
+> 同理，**输出重定向**就是把`files[1]`指向一个文件，那么程序的输出就不会写入到显示器，而是写入到这个文件中：
+>
+> ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/gibkIz0MVqdEZbbic0diawibWHE9EoMFmX8qPcRT8weuAZoENbribFJbhbpMkwDfez6QxVE2H8hDRhPMHWmAcBs0rcg/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+>
+> 错误重定向也是一样的，就不再赘述。
+>
+> **管道符**其实也是异曲同工，把一个进程的输出流和另一个进程的输入流接起一条「管道」，数据就在其中传递，不得不说这种设计思想真的很巧妙：
+>
+> ![图片](https://mmbiz.qpic.cn/sz_mmbiz_jpg/gibkIz0MVqdEZbbic0diawibWHE9EoMFmX8qBRhdjExXRmiccwQ37ZXZ4645LlAdYY4VOUUibUDNrLjNLUGXWjGPibOgw/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+
++ http为什么要设立一个头部来存放相关信息不直接放在body里
+
+> （自己回答的时候从协议栈工作的角度回答了，结论是主要是为了解耦）
+>
+> HTTP包括message-header和message-body两部分。
+>
+> `header`主要来存放cookie，token等信息的 `body`主要用来存放post的一些数据
+
++   把默认的三级隔离级别换成二级隔离级别会有什么影响
+
+> （自己回答的时候从x锁、s锁的角度、行级锁和表级锁、快照读和当前读的角度进行了回答，认为程序员层面这样的改动没有影响，因为只是出现了不可重复读的问题，不知道对不对）
+>
+> A事务需要重复读两次时，第一次读到事务B未提交之前的数据第二次读到了B已提交的数据，就造成了两次读到的数据不一致，从而有可能影响到A的业务。
