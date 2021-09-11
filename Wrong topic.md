@@ -1074,3 +1074,27 @@
 > （自己回答的时候从x锁、s锁的角度、行级锁和表级锁、快照读和当前读的角度进行了回答，认为程序员层面这样的改动没有影响，因为只是出现了不可重复读的问题，不知道对不对）
 >
 > A事务需要重复读两次时，第一次读到事务B未提交之前的数据第二次读到了B已提交的数据，就造成了两次读到的数据不一致，从而有可能影响到A的业务。
+
++ 为何需要3个随机数协商密钥
+
+> 客户端和服务端在握手hello消息中明文交换了client_random和server_random，使用RSA公钥加密传输pre master secret，最后通过算法，客户端和服务端分别计算master secret。其中，不直接使用premaster secret的原因是：保证secret的随机性不受任意一方的影响。
+
++ git rebase和merge区别
+
+> merge和rebase都是用来合并分支的。
+>
+> 1. 采用merge和rebase后，git log的区别，merge命令不会保留merge的分支的commit
+>
+> 2. 处理冲突的方式：
+>
+>    + 使用`merge`命令合并分支，解决完冲突，执行`git add .`和`git commit -m'fix conflict'`。这个时候会产生一个commit。
+>
+>    + 使用`rebase`命令合并分支，解决完冲突，执行`git add .`和`git rebase --continue`，不会产生额外的commit。好处是干净，分支上不会有无意义的解决分支的commit；坏处，如果合并的分支中存在多个`commit`，需要重复处理多次冲突
+
++ `git merge` 和 `git merge --no-ff`的区别
+
+> 如果想在没有冲突的情况下也自动生成一个commit，记录此次合并就可以用：`git merge --no-ff`命令，下面用一张图来表示两者的区别：\
+>
+> ![image-20210911220528314](https://gitee.com/ahrunio/pic-go-image-hosting-service/raw/master/img/image-20210911220528314.png)
+>
+> 如果不加 --no-ff 则被合并的分支之前的commit都会被抹去，只会保留一个解决冲突后的 merge commit。
